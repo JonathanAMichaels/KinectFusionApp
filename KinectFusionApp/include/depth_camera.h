@@ -18,6 +18,11 @@
 
 #include <librealsense2/rs.hpp>
 
+#include <libfreenect2/libfreenect2.hpp>
+#include <libfreenect2/frame_listener_impl.h>
+#include <libfreenect2/registration.h>
+#include <libfreenect2/packet_pipeline.h>
+
 using kinectfusion::CameraParameters;
 
 /**
@@ -105,7 +110,7 @@ private:
 /*
  * Provides depth frames acquired by a Microsoft Kinect camera.
  */
-/*
+
 class KinectCamera : public DepthCamera {
 public:
     KinectCamera();
@@ -115,7 +120,16 @@ public:
     InputFrame grab_frame() const override;
 
     CameraParameters get_parameters() const override;
+
+private:
+    libfreenect2::Freenect2 freenect2;
+    libfreenect2::Freenect2Device *dev = 0;
+    libfreenect2::PacketPipeline *pipeline = 0;
+    libfreenect2::SyncMultiFrameListener* listener;
+
+    CameraParameters cam_params;
+
+    float scaleToMeters;
 };
- */
 
 #endif //KINECTFUSION_CAMERA_H

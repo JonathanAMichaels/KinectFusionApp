@@ -45,6 +45,14 @@ find_package(realsense2 REQUIRED)
 if (realsense2_FOUND)
     include_directories("${realsense_INCLUDE_DIR}")
 endif (realsense2_FOUND)
+
+
+set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{HOME}/freenect2/lib/cmake/freenect2)
+find_package(freenect2 REQUIRED)
+
+INCLUDE_DIRECTORIES(
+  ${freenect2_INCLUDE_DIR}
+)
 # ------------------------------------------------
 
 include_directories(${PROJECT_INCLUDE_DIR})
@@ -52,5 +60,5 @@ include_directories(${CMAKE_SOURCE_DIR}/KinectFusionLib/include)
 
 file(GLOB KinectFusionApp_SRCS ${PROJECT_SOURCE_DIR}/*.cpp)
 
-add_executable(KinectFusionApp ${KinectFusionApp_SRCS})
-target_link_libraries(KinectFusionApp ${OpenCV_LIBS} ${OPENNI2_LIBRARY} ${realsense2_LIBRARY} KinectFusion)
+cuda_add_executable(KinectFusionApp ${KinectFusionApp_SRCS})
+target_link_libraries(KinectFusionApp ${OpenCV_LIBS} ${OPENNI2_LIBRARY} ${realsense2_LIBRARY} ${freenect2_LIBRARY} KinectFusion)

@@ -1,13 +1,14 @@
 # Configuration file for KinectFusionApp
 
-data_path = "/home/christian/share/dataset/"
-recording_name = "woman"
+data_path = "/home/jonathan/Documents/"
+recording_name = "test"
 
 # Input camera settings
 [camera]
 #type = "Pseudo"
 #type = "Xtion"
-type = "RealSense"
+#type = "RealSense"
+type = 'Kinectv2'
 
 [camera.realsense]
 live = true
@@ -28,7 +29,7 @@ bfilter_color_sigma = 1.0
 bfilter_spatial_sigma = 1.0
 
 # The initial distance of the camera from the volume center along the z-axis (in mm)
-init_depth = 1000.0
+init_depth = 200.0
 
 # Downloads the model frame for each frame (for visualization purposes). If this is set to true, you can
 # retrieve the frame with Pipeline::get_last_model_frame()
@@ -39,7 +40,7 @@ truncation_distance = 25.0
 
 # The distance (in mm) after which to set the depth in incoming depth frames to 0.
 # Can be used to separate an object you want to scan from the background
-depth_cutoff_distance = 1500.0
+depth_cutoff_distance = 10000.0
 
 # The number of pyramid levels to generate for each frame, including the original frame level
 num_levels = 3
@@ -55,4 +56,4 @@ distance_threshold = 10.0
 # The angle threshold (as described in the paper) in degrees
 angle_threshold = 20.0
 # Number of ICP iterations for each level from original level 0 to highest scaled level (sparse to coarse)
-icp_iterations = [ 4, 5, 10 ]
+icp_iterations = [ 10, 20, 30 ]#[ 4, 5, 10 ]

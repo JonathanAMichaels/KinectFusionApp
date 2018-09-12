@@ -260,14 +260,24 @@ RealSenseCamera::RealSenseCamera(const std::string& filename) : pipeline{}
 
 InputFrame RealSenseCamera::grab_frame() const
 {
+
+    rs2::align align(RS2_STREAM_COLOR);
     auto data = pipeline.wait_for_frames();
-    auto depth = data.get_depth_frame();
-    auto color = data.get_color_frame();
+    //auto depth = data.get_depth_frame();
+    //auto color = data.get_color_frame();
+
+    //Get processed aligned frame
+    auto processed = align.process(data);
+
+    // Trying to get both color and aligned depth frames
+    rs2::video_frame other_frame = processed.first_or_default(RS2_STREAM_COLOR);
+    rs2::depth_frame aligned_depth_frame = processed.get_depth_frame();
+
 
     cv::Mat depth_image { cv::Size { cam_params.image_width,
                                      cam_params.image_height },
                           CV_16UC1,
-                          const_cast<void*>(depth.get_data()),
+                          const_cast<void*>(aligned_depth_frame.get_data()),
                           cv::Mat::AUTO_STEP};
 
     cv::Mat converted_depth_image;
@@ -276,7 +286,7 @@ InputFrame RealSenseCamera::grab_frame() const
     cv::Mat color_image { cv::Size { cam_params.image_width,
                                      cam_params.image_height },
                           CV_8UC3,
-                          const_cast<void*>(color.get_data()),
+                          const_cast<void*>(other_frame.get_data()),
                           cv::Mat::AUTO_STEP};
 
     return InputFrame {
@@ -293,10 +303,65 @@ CameraParameters RealSenseCamera::get_parameters() const
 
 
 // ### Kinect ###
-/*
+
 KinectCamera::KinectCamera()
 {
+    
+    if(freenect2.enumerateDevices() == 0)
+    {
+        std::cout << "no device connected!" << std::endl;
+    }
+    auto serial = freenect2.getDefaultDeviceSerialNumber();
+    pipeline = new libfreenect2::CudaPacketPipeline();
+    dev = freenect2.openDevice(serial, pipeline);
 
+    int types = 0;
+    types |= libfreenect2::Frame::Color | libfreenect2::Frame::Depth;
+    listener = new libfreenect2::SyncMultiFrameListener(types);
+
+    dev->setColorFrameListener(listener);
+    dev->setIrAndDepthFrameListener(listener);
+
+    dev->startStreams(true, true);
+   
+    std::cout << "device serial: " << dev->getSerialNumber() << std::endl;
+    std::cout << "device firmware: " << dev->getFirmwareVersion() << std::endl;
+
+    auto intrinsics = dev->getIrCameraParams();
+
+    libfreenect2::FrameMap frames;
+   
+    scaleToMeters = (float)1.0/(float)1000.0;
+    
+    if (!listener->waitForNewFrame(frames, 10*1000)) // 10 seconds
+    {
+        std::cout << "timeout!" << std::endl;
+    }
+    libfreenect2::Frame *depth = frames[libfreenect2::Frame::Depth];
+    
+    cam_params.focal_x = intrinsics.fx;
+    cam_params.focal_y = intrinsics.fy;
+    cam_params.image_height = depth->height;
+    cam_params.image_width = depth->width;
+    cam_params.principal_x = intrinsics.cx;
+    cam_params.principal_y = intrinsics.cy;
+
+    /*
+    auto pixels = (float*)depth->data;    
+    auto yy = this->_depthHeight-1;
+    for (auto y = 0; y < this->_depthHeight; y++)
+    {
+        auto xx = this->_depthWidth-1;
+        for (auto x = 0; x < this->_depthWidth; x++)
+        {
+            _depthData->hostPtr()[this->_depthWidth*y + x] = pixels[this->_depthWidth*yy + xx];
+            xx -= 1;
+        }
+        yy -= 1;
+    }
+    */
+
+    listener->release(frames);
 }
 
 KinectCamera::~KinectCamera()
@@ -305,12 +370,45 @@ KinectCamera::~KinectCamera()
 }
 
 InputFrame KinectCamera::grab_frame() const
-{
+{ 
+    libfreenect2::Registration* registration = new libfreenect2::Registration(dev->getIrCameraParams(), dev->getColorCameraParams());
+    libfreenect2::Frame undistorted(512, 424, 4), registered(512, 424, 4);
 
+    libfreenect2::FrameMap frames;
+    if (!listener->waitForNewFrame(frames, 10*1000)) // 10 seconds
+    {
+        std::cout << "timeout!" << std::endl;
+    }
+    libfreenect2::Frame *depth = frames[libfreenect2::Frame::Depth];
+    libfreenect2::Frame *rgb = frames[libfreenect2::Frame::Color];
+    registration->apply(rgb, depth, &undistorted, &registered);
+
+    cv::Mat depth_image { cv::Size { cam_params.image_width,
+                                     cam_params.image_height },
+                          CV_32FC1,
+                          (void*)(undistorted.data),
+                          cv::Mat::AUTO_STEP};
+
+    cv::Mat converted_depth_image;
+    depth_image.convertTo(converted_depth_image, CV_32FC1, scaleToMeters * 1000.f);
+
+    cv::Mat color_image { cv::Size { cam_params.image_width,
+                                     cam_params.image_height },
+                          CV_8UC3,
+                          (void*)(registered.data),
+                          cv::Mat::AUTO_STEP};
+    cv::cvtColor(color_image, color_image, cv::COLOR_BGR2RGB);
+
+
+   listener->release(frames);
+
+    return InputFrame {
+            converted_depth_image,
+            color_image
+        };
 }
 
 CameraParameters KinectCamera::get_parameters() const
 {
-
+    return cam_params;
 }
-*/

@@ -67,6 +67,8 @@ auto make_camera(const std::shared_ptr<cpptoml::table>& toml_config)
             source_file << data_path << "source/" << recording_name << ".bag";
             camera = std::make_unique<RealSenseCamera>(source_file.str());
         }
+    } else if (camera_type == "Kinectv2") {
+        camera = std::make_unique<KinectCamera>();
     } else {
         throw std::logic_error("There is no implementation for the camera type you specified.");
     }
@@ -83,8 +85,17 @@ void main_loop(const std::unique_ptr<DepthCamera> camera, const kinectfusion::Gl
         //1 Get frame
         InputFrame frame = camera->grab_frame();
 
+        //double min;
+        //double max;
+        //cv::minMaxIdx(frame.depth_map, &min, &max);
+        //cv::Mat adjMap;
+        //cv::convertScaleAbs(frame.depth_map, adjMap, 255 / max);
+        cv::imshow("Out", frame.depth_map);
+
         //2 Process frame
         bool success = pipeline.process_frame(frame.depth_map, frame.color_map);
+        if (success)
+            std::cout << "FRAME PROCESSED" << std::endl;
         if (!success)
             std::cout << "Frame could not be processed" << std::endl;
 
