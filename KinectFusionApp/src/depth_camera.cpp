@@ -328,17 +328,19 @@ KinectCamera::KinectCamera()
     std::cout << "device firmware: " << dev->getFirmwareVersion() << std::endl;
 
     auto intrinsics = dev->getIrCameraParams();
-
-    libfreenect2::FrameMap frames;
    
     scaleToMeters = (float)1.0/(float)1000.0;
     
+    libfreenect2::FrameMap frames;
     if (!listener->waitForNewFrame(frames, 10*1000)) // 10 seconds
     {
         std::cout << "timeout!" << std::endl;
     }
     libfreenect2::Frame *depth = frames[libfreenect2::Frame::Depth];
     
+    registration = new libfreenect2::Registration(dev->getIrCameraParams(), dev->getColorCameraParams());
+   
+
     cam_params.focal_x = intrinsics.fx;
     cam_params.focal_y = intrinsics.fy;
     cam_params.image_height = depth->height;
@@ -366,14 +368,12 @@ KinectCamera::KinectCamera()
 
 KinectCamera::~KinectCamera()
 {
-
+    dev->stop();
+    dev->close();
 }
 
 InputFrame KinectCamera::grab_frame() const
-{ 
-    libfreenect2::Registration* registration = new libfreenect2::Registration(dev->getIrCameraParams(), dev->getColorCameraParams());
-    libfreenect2::Frame undistorted(512, 424, 4), registered(512, 424, 4);
-
+{     
     libfreenect2::FrameMap frames;
     if (!listener->waitForNewFrame(frames, 10*1000)) // 10 seconds
     {
@@ -381,6 +381,7 @@ InputFrame KinectCamera::grab_frame() const
     }
     libfreenect2::Frame *depth = frames[libfreenect2::Frame::Depth];
     libfreenect2::Frame *rgb = frames[libfreenect2::Frame::Color];
+    libfreenect2::Frame undistorted(512, 424, 4), registered(512, 424, 4);
     registration->apply(rgb, depth, &undistorted, &registered);
 
     cv::Mat depth_image { cv::Size { cam_params.image_width,
@@ -389,15 +390,17 @@ InputFrame KinectCamera::grab_frame() const
                           (void*)(undistorted.data),
                           cv::Mat::AUTO_STEP};
 
+    cv::Mat flipped_depth_image;
+    cv::flip(depth_image, flipped_depth_image, 1);
     cv::Mat converted_depth_image;
-    depth_image.convertTo(converted_depth_image, CV_32FC1, scaleToMeters * 1000.f);
+    flipped_depth_image.convertTo(converted_depth_image, CV_32FC1, scaleToMeters * 1000.f);
 
     cv::Mat color_image { cv::Size { cam_params.image_width,
                                      cam_params.image_height },
                           CV_8UC3,
                           (void*)(registered.data),
                           cv::Mat::AUTO_STEP};
-    cv::cvtColor(color_image, color_image, cv::COLOR_BGR2RGB);
+   // cv::cvtColor(color_image, color_image, cv::COLOR_BGR2RGB);
 
 
    listener->release(frames);

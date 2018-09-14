@@ -85,13 +85,6 @@ void main_loop(const std::unique_ptr<DepthCamera> camera, const kinectfusion::Gl
         //1 Get frame
         InputFrame frame = camera->grab_frame();
 
-        //double min;
-        //double max;
-        //cv::minMaxIdx(frame.depth_map, &min, &max);
-        //cv::Mat adjMap;
-        //cv::convertScaleAbs(frame.depth_map, adjMap, 255 / max);
-        cv::imshow("Out", frame.depth_map);
-
         //2 Process frame
         bool success = pipeline.process_frame(frame.depth_map, frame.color_map);
         if (success)

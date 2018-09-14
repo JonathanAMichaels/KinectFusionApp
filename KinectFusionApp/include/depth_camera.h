@@ -126,6 +126,7 @@ private:
     libfreenect2::Freenect2Device *dev = 0;
     libfreenect2::PacketPipeline *pipeline = 0;
     libfreenect2::SyncMultiFrameListener* listener;
+    libfreenect2::Registration* registration;
 
     CameraParameters cam_params;
 
